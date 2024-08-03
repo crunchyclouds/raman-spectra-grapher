@@ -1,6 +1,8 @@
 #importing relevant libraries
-from imports import *
-
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+import pathlib
 
 #main function for the graphing of raman spectra data
 
