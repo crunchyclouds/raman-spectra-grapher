@@ -1,0 +1,564 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>from imports import *\r\nimport grapher\r\n\r\ngrapher()\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/main.py	(date 1730502028586)
+@@ -1,4 +1,169 @@
+-from imports import *
+-import grapher
++import tkinter as tk
++from tkinter import filedialog, messagebox
++import matplotlib.pyplot as plt
++import pandas as pd
++import pathlib
++import numpy as np
++
++
++# Main function for the graphing of Raman spectra data
++def plot_raman_spectra(path):
++    # Identify if the path is a file or a directory
++    if pathlib.Path(path).is_dir():
++        files = [file for file in pathlib.Path(path).glob("*.csv")] + \
++                [file for file in pathlib.Path(path).glob("*.xlsx")]
++    else:
++        files = [path]
++
++    # Correcting matplotlib presets
++    plt.rcParams.update({'font.size': 18})
++
++    # Looping through all files
++    for file in files:
++        if file.suffix == '.csv':
++            df = pd.read_csv(file, header=105)
++        elif file.suffix == '.xlsx':
++            df = pd.read_excel(file, header=105)
++
++        # Prepare y-axis and x-axis data
++        y_axis = df['Dark Subtracted #1'] - df['RelativeIntensityCorrection_Ratio #1']
++        x_axis = df['Raman Shift']
++
++        # Create a larger plot
++        plt.figure(figsize=(12, 6))  # Set figure size
++        plt.ylim(0, 20000)
++        plt.plot(x_axis, y_axis, label=str(pathlib.Path(file).stem))
++        plt.ylabel(r"Intensity (a.u.)")
++        plt.xlabel("Raman Shift (cm^-1)")
++        plt.legend(loc='lower right')
++        plt.show()
++
++
++def identify_peaks(path):
++    # Load the data from the selected file
++    if pathlib.Path(path).suffix == '.csv':
++        df = pd.read_csv(path, header=105)
++    elif pathlib.Path(path).suffix == '.xlsx':
++        df = pd.read_excel(path, header=105)
++
++    # Prepare y-axis and x-axis data
++    y_axis = df['Dark Subtracted #1'] - df['RelativeIntensityCorrection_Ratio #1']
++    x_axis = df['Raman Shift']
++
++    # Identify major peaks using a simple threshold method (customize as needed)
++    threshold = np.mean(y_axis) + 2 * np.std(y_axis)  # Example threshold for peak detection
++    peaks = x_axis[y_axis > threshold]
++
++    # Display peaks
++    if len(peaks) > 0:
++        peak_info = "Major Peaks:\n" + "\n".join([f"{peak:.2f} cm^-1" for peak in peaks])
++    else:
++        peak_info = "No major peaks identified above the threshold."
++
++    messagebox.showinfo("Peak Identification", peak_info)
++
++
++# Create a tkinter window
++class RamanGrapherApp:
++    def __init__(self, root):
++        self.root = root
++        self.root.title("Raman Spectroscopy Grapher")
++        self.root.geometry("800x400")  # Set a larger window size
++        self.root.configure(bg='#f5f5dc')  # Set background color to off-white tan
++
++        # Set up the main frame
++        frame = tk.Frame(root, bg='#f5f5dc', padx=10, pady=10)
++        frame.pack(padx=20, pady=20)
+ 
+-grapher()
++        # Title Label
++        self.title_label = tk.Label(frame, text="Raman Spectra Grapher and Analysis",
++                                    font=("Helvetica", 20, 'bold'), bg='#f5f5dc', fg='darkblue')
++        self.title_label.grid(row=0, column=0, columnspan=2, pady=(0, 10))
++
++        # Instructions Label
++        self.label = tk.Label(frame, text="Select an option:",
++                              font=("Helvetica", 16), bg='#f5f5dc', fg='darkblue')
++        self.label.grid(row=1, column=0, columnspan=2, pady=5)
++
++        # Option selection for folder or file
++        self.option_var = tk.StringVar(value="folder")
++
++        # Radio buttons for folder and file selection
++        self.folder_radio = tk.Radiobutton(frame, text="Select Folder", variable=self.option_var,
++                                           value="folder", bg='#f5f5dc', fg='darkblue', font=("Helvetica", 14))
++        self.folder_radio.grid(row=2, column=0, sticky='e', padx=(0, 5))
++
++        self.file_radio = tk.Radiobutton(frame, text="Select Single File", variable=self.option_var,
++                                         value="file", bg='#f5f5dc', fg='darkblue', font=("Helvetica", 14))
++        self.file_radio.grid(row=2, column=1, sticky='w', padx=(5, 0))
++
++        # Folder/File path display
++        self.path_var = tk.StringVar()
++        self.path_entry = tk.Entry(frame, textvariable=self.path_var, width=40, state='readonly',
++                                   font=("Helvetica", 12), bg='white')
++        self.path_entry.grid(row=3, column=0, padx=5, pady=(10, 0), columnspan=2)
++
++        # Browse button
++        self.browse_button = tk.Button(frame, text="Browse", command=self.select_path, bg='sky blue',
++                                       font=("Helvetica", 14), width=15)
++        self.browse_button.grid(row=4, column=0, padx=5, pady=(10, 0), columnspan=2)
++
++        # Action buttons side by side
++        self.plot_button = tk.Button(frame, text="Plot Raman Spectra", command=self.plot_spectra, bg='sky blue',
++                                     font=("Helvetica", 14), width=20)
++        self.plot_button.grid(row=5, column=0, padx=5, pady=(10, 0), sticky='w')
++
++        self.peak_button = tk.Button(frame, text="Identify Peaks", command=self.identify_peaks, bg='sky blue',
++                                     font=("Helvetica", 14), width=20)
++        self.peak_button.grid(row=5, column=1, padx=5, pady=(10, 0), sticky='w')
++
++        self.instructions_button = tk.Button(frame, text="Instructions", command=self.show_instructions, bg='sky blue',
++                                             font=("Helvetica", 14), width=20)
++        self.instructions_button.grid(row=6, column=0, columnspan=2, pady=(10, 5))
++
++    def select_path(self):
++        # Determine whether to ask for a folder or a single file based on user selection
++        if self.option_var.get() == "folder":
++            path = filedialog.askdirectory()  # Ask for a directory
++        else:
++            path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv"), ("Excel Files", "*.xlsx")])
++
++        if path:  # Only set path_var if a path is selected
++            self.path_var.set(path)
++
++    def plot_spectra(self):
++        # Call the grapher function with the selected path
++        path = self.path_var.get()
++        if path:
++            try:
++                plot_raman_spectra(path)
++            except Exception as e:
++                messagebox.showerror("Error", f"An error occurred while plotting: {e}")
++        else:
++            messagebox.showwarning("Warning", "Please select a folder or file first.")
++
++    def identify_peaks(self):
++        # Identify peaks for a single selected file
++        path = self.path_var.get()
++        if path:
++            try:
++                identify_peaks(path)
++            except Exception as e:
++                messagebox.showerror("Error", f"An error occurred while identifying peaks: {e}")
++        else:
++            messagebox.showwarning("Warning", "Please select a file first.")
++
++    def show_instructions(self):
++        # Show instructions in a message box
++        instructions = ("1. Select a folder containing CSV files or a single CSV/XLSX file.\n"
++                        "2. Click 'Plot Raman Spectra' to generate the plots.\n"
++                        "3. Click 'Identify Peaks' to find major peaks in the selected file.\n"
++                        "4. Ensure the data is formatted correctly for analysis.")
++        messagebox.showinfo("Instructions", instructions)
++
++
++# Run the tkinter application
++if __name__ == "__main__":
++    root = tk.Tk()
++    app = RamanGrapherApp(root)
++    root.mainloop()
+Index: grapher.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#importing relevant libraries\r\nimport matplotlib\r\nimport matplotlib.pyplot as plt\r\nimport pandas as pd\r\nimport pathlib\r\n\r\n#main function for the graphing of raman spectra data\r\n\r\n#input folder\r\nfolder=r\"D:\\Data\\Raman\\0802\"\r\n\r\n#identifying csv files within the folder\r\nfiles = [file for file in pathlib.Path(folder).glob(\"*.csv\")]\r\n\r\n#correcting matplotlib presets\r\nmatplotlib.rcParams.update({'font.size': 18})\r\n\r\n#removing temporary files\r\nfor file in files:\r\n    if \"~\" in str(file):\r\n        files.remove(file)\r\n\r\n#looping through all files\r\nfor file in files:\r\n\r\n    #updating user of status\r\n    print(f'Reading from {file}')\r\n    print('Processing your files...')\r\n\r\n    #reading excel data for cycle index and current capacity\r\n    df = pd.read_csv(file, header=105)\r\n\r\n    y_axis = df['Dark Subtracted #1'] - df['RelativeIntensityCorrection_Ratio #1']\r\n    x_axis = df['Raman Shift']\r\n\r\n    #correcting for series height and stacking\r\n\r\n\r\n    #creating a plot\r\n    series = str(pathlib.Path(file).stem)\r\n    #plt.xlim(400,675)\r\n    plt.ylim(0,20000)\r\n    plt.plot(x_axis, y_axis,\r\n             marker='',\r\n             label=series)\r\n    plt.legend(loc='lower right')\r\n\r\n    n=1\r\n    stack=0\r\n    print(f'Data set {n}/{len(files)} complete.')\r\n    n+=1\r\n    stack+=4000\r\n\r\n#assigned constant values\r\nplt.ylabel(r\"Intensity (a.u.)\")\r\nplt.xlabel(\"Raman Shift (cm^-1)\")\r\nplt.title(str(pathlib.Path(folder).stem))\r\nplt.show()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/grapher.py b/grapher.py
+--- a/grapher.py	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/grapher.py	(date 1730500815669)
+@@ -1,58 +1,70 @@
+-#importing relevant libraries
+ import matplotlib
+ import matplotlib.pyplot as plt
+ import pandas as pd
+ import pathlib
+ 
+-#main function for the graphing of raman spectra data
+ 
+-#input folder
+-folder=r"D:\Data\Raman\0802"
++def plot_raman_spectra(input_path):
++    # Update matplotlib settings for publishable quality
++    matplotlib.rcParams.update({
++        'font.size': 14,
++        'lines.linewidth': 2,
++        'axes.labelsize': 16,
++        'axes.titlesize': 18,
++        'legend.fontsize': 12,
++        'xtick.labelsize': 12,
++        'ytick.labelsize': 12,
++    })
+ 
+-#identifying csv files within the folder
+-files = [file for file in pathlib.Path(folder).glob("*.csv")]
++    files = []
+ 
+-#correcting matplotlib presets
+-matplotlib.rcParams.update({'font.size': 18})
++    # Check if the input path is a folder or a file
++    input_path = pathlib.Path(input_path)
+ 
+-#removing temporary files
+-for file in files:
+-    if "~" in str(file):
+-        files.remove(file)
++    if input_path.is_dir():
++        # Collect CSV and XLSX files from the folder
++        files = list(input_path.glob("*.csv")) + list(input_path.glob("*.xlsx"))
++    elif input_path.is_file() and input_path.suffix in ['.csv', '.xlsx']:
++        files = [input_path]
++    else:
++        print("Invalid input. Please provide a valid folder or a CSV/XLSX file.")
++        return
+ 
+-#looping through all files
+-for file in files:
++    # Check if any valid files were found
++    if not files:
++        print("No valid files found in the specified path.")
++        return
+ 
+-    #updating user of status
+-    print(f'Reading from {file}')
+-    print('Processing your files...')
++    # Create a new figure
++    plt.figure(figsize=(10, 6))
+ 
+-    #reading excel data for cycle index and current capacity
+-    df = pd.read_csv(file, header=105)
++    # Loop through files and plot each dataset
++    for idx, file in enumerate(files, start=1):
++        print(f'Processing file {idx}/{len(files)}: {file.name}')
++
++        # Read the data and extract relevant columns
++        if file.suffix == '.csv':
++            df = pd.read_csv(file, header=105)
++        else:  # .xlsx
++            df = pd.read_excel(file, header=105)
+ 
+-    y_axis = df['Dark Subtracted #1'] - df['RelativeIntensityCorrection_Ratio #1']
+-    x_axis = df['Raman Shift']
++        y_axis = df['Dark Subtracted #1'] - df['RelativeIntensityCorrection_Ratio #1']
++        x_axis = df['Raman Shift']
+ 
+-    #correcting for series height and stacking
+-
++        # Plot each file's data as a separate series
++        series_label = file.stem
++        plt.plot(x_axis, y_axis, label=series_label)
+ 
+-    #creating a plot
+-    series = str(pathlib.Path(file).stem)
+-    #plt.xlim(400,675)
+-    plt.ylim(0,20000)
+-    plt.plot(x_axis, y_axis,
+-             marker='',
+-             label=series)
+-    plt.legend(loc='lower right')
++    # Finalize plot details
++    plt.ylim(0, 20000)  # Set appropriate y-axis limits based on data characteristics
++    plt.xlim(x_axis.min(), x_axis.max())  # Dynamically set x-axis limits
++    plt.xlabel("Raman Shift (cm⁻¹)", fontsize=16)
++    plt.ylabel("Intensity (a.u.)", fontsize=16)
++    plt.title(f"Raman Spectra - {input_path.name}", fontsize=18)
++    plt.legend(loc='lower right', frameon=True, shadow=True)
+ 
+-    n=1
+-    stack=0
+-    print(f'Data set {n}/{len(files)} complete.')
+-    n+=1
+-    stack+=4000
+-
+-#assigned constant values
+-plt.ylabel(r"Intensity (a.u.)")
+-plt.xlabel("Raman Shift (cm^-1)")
+-plt.title(str(pathlib.Path(folder).stem))
+-plt.show()
+\ No newline at end of file
++    # Option to save the plot
++    plt.tight_layout()  # Adjusts plot to fit into the figure area
++    plt.grid(True, linestyle='--', alpha=0.7)  # Add grid for better readability
++    plt.savefig(f"{input_path.name}_raman_spectra.png", dpi=300, bbox_inches='tight')  # Save plot
++    plt.show()  # Show the plot
+\ No newline at end of file
+Index: imports.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import tkinter as tk\r\nfrom tkinter import ttk\r\nimport matplotlib.pyplot as plt\r\nimport pandas as pd\r\nimport pathlib\r\nimport re\r\nimport warnings\r\nimport time\r\nimport numpy as np\r\nfrom scipy.signal import savgol_filter\r\nfrom scipy.signal import medfilt\r\nimport turtle\r\nimport matplotlib
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/imports.py b/imports.py
+--- a/imports.py	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/imports.py	(date 1730502277574)
+@@ -1,13 +1,6 @@
+-import tkinter as tk
+-from tkinter import ttk
++import matplotlib
+ import matplotlib.pyplot as plt
+ import pandas as pd
+ import pathlib
+-import re
+-import warnings
+-import time
+-import numpy as np
+-from scipy.signal import savgol_filter
+-from scipy.signal import medfilt
+-import turtle
+-import matplotlib
+\ No newline at end of file
++import tkinter as tk
++from tkinter import filedialog, messagebox
+Index: README.md
+===================================================================
+diff --git a/README.md b/README.md
+deleted file mode 100644
+--- a/README.md	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ /dev/null	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
+@@ -1,3 +0,0 @@
+-# raman-spectra-grapher
+-
+-in-progress tool to graph raman spectroscopy data and stack multiple series for figure readability
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectModuleManager\">\r\n    <modules>\r\n      <module fileurl=\"file://$PROJECT_DIR$/.idea/raman-spectra-viz.iml\" filepath=\"$PROJECT_DIR$/.idea/raman-spectra-viz.iml\" />\r\n    </modules>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+--- a/.idea/modules.xml	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/.idea/modules.xml	(date 1722786389954)
+@@ -2,6 +2,9 @@
+ <project version="4">
+   <component name="ProjectModuleManager">
+     <modules>
++      <module fileurl="file://$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" filepath="$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" />
++      <module fileurl="file://$PROJECT_DIR$/../ftir-grapher/.idea/ftir-grapher.iml" filepath="$PROJECT_DIR$/../ftir-grapher/.idea/ftir-grapher.iml" />
++      <module fileurl="file://$PROJECT_DIR$/.idea/raman-spectra-grapher.iml" filepath="$PROJECT_DIR$/.idea/raman-spectra-grapher.iml" />
+       <module fileurl="file://$PROJECT_DIR$/.idea/raman-spectra-viz.iml" filepath="$PROJECT_DIR$/.idea/raman-spectra-viz.iml" />
+     </modules>
+   </component>
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"437d6962-e7a9-440e-b5fa-e040f5c29c3f\" name=\"Changes\" comment=\"\" />\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\"><![CDATA[{\r\n  \"associatedIndex\": 7\r\n}]]></component>\r\n  <component name=\"ProjectId\" id=\"2jsRSzSvpZDrK2BbwvT8doBIi9N\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\"><![CDATA[{\r\n  \"keyToString\": {\r\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\r\n    \"git-widget-placeholder\": \"main\"\r\n  }\r\n}]]></component>\r\n  <component name=\"SharedIndexes\">\r\n    <attachedChunks>\r\n      <set>\r\n        <option value=\"bundled-python-sdk-975db3bf15a3-31b6be0877a2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.18034.82\" />\r\n      </set>\r\n    </attachedChunks>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"437d6962-e7a9-440e-b5fa-e040f5c29c3f\" name=\"Changes\" comment=\"\" />\r\n      <created>1722173803397</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1722173803397</updated>\r\n    </task>\r\n    <servers />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/.idea/workspace.xml	(date 1730500873997)
+@@ -1,29 +1,106 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
++  <component name="AutoImportSettings">
++    <option name="autoReloadType" value="SELECTIVE" />
++  </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="437d6962-e7a9-440e-b5fa-e040f5c29c3f" name="Changes" comment="" />
++    <list default="true" id="437d6962-e7a9-440e-b5fa-e040f5c29c3f" name="Changes" comment="">
++      <change afterPath="$PROJECT_DIR$/../electrochem-analysis-tool/Capacity Decline.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/../electrochem-analysis-tool/Discharge Voltage.py" beforeDir="false" afterPath="$PROJECT_DIR$/../electrochem-analysis-tool/Discharge Voltage.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/../electrochem-analysis-tool/Raw Capacity Retention.py" beforeDir="false" afterPath="$PROJECT_DIR$/../electrochem-analysis-tool/Raw Capacity Retention.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/../electrochem-analysis-tool/Smooth Capacity Retention.py" beforeDir="false" afterPath="$PROJECT_DIR$/../electrochem-analysis-tool/Smooth Capacity Retention.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/../ftir-grapher/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../ftir-grapher/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/grapher.py" beforeDir="false" afterPath="$PROJECT_DIR$/grapher.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
++    </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+     <option name="LAST_RESOLUTION" value="IGNORE" />
++  </component>
++  <component name="FileTemplateManagerImpl">
++    <option name="RECENT_TEMPLATES">
++      <list>
++        <option value="Python Script" />
++      </list>
++    </option>
+   </component>
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
++    <option name="ROOT_SYNC" value="SYNC" />
+   </component>
+-  <component name="ProjectColorInfo"><![CDATA[{
+-  "associatedIndex": 7
+-}]]></component>
++  <component name="GitHubPullRequestSearchHistory">{
++  &quot;lastFilter&quot;: {
++    &quot;state&quot;: &quot;OPEN&quot;,
++    &quot;assignee&quot;: &quot;crunchyclouds&quot;
++  }
++}</component>
++  <component name="GithubPullRequestsUISettings">{
++  &quot;selectedUrlAndAccountId&quot;: {
++    &quot;url&quot;: &quot;https://github.com/crunchyclouds/raman-spectra-grapher.git&quot;,
++    &quot;accountId&quot;: &quot;2a296d64-7113-41d3-a276-c5e61df69823&quot;
++  }
++}</component>
++  <component name="ProjectColorInfo">{
++  &quot;associatedIndex&quot;: 7
++}</component>
+   <component name="ProjectId" id="2jsRSzSvpZDrK2BbwvT8doBIi9N" />
+   <component name="ProjectViewState">
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent"><![CDATA[{
+-  "keyToString": {
+-    "RunOnceActivity.ShowReadmeOnStart": "true",
+-    "git-widget-placeholder": "main"
+-  }
+-}]]></component>
++  <component name="PropertiesComponent">{
++  &quot;keyToString&quot;: {
++    &quot;Python.Differential_Voltage.executor&quot;: &quot;Run&quot;,
++    &quot;Python.Raw Capacity Retention.executor&quot;: &quot;Run&quot;,
++    &quot;Python.Smooth Capacity Retention.executor&quot;: &quot;Run&quot;,
++    &quot;Python.grapher.executor&quot;: &quot;Run&quot;,
++    &quot;Python.main.executor&quot;: &quot;Run&quot;,
++    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
++    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
++    &quot;last_opened_file_path&quot;: &quot;C:/Users/mihir/Programs/Documents/GitHub/electrochem-analysis-tool&quot;,
++    &quot;settings.editor.selected.configurable&quot;: &quot;configurable.group.project&quot;
++  }
++}</component>
++  <component name="RecentsManager">
++    <key name="CopyFile.RECENT_KEYS">
++      <recent name="C:\Users\mihir\Programs\Documents\GitHub\electrochem-analysis-tool" />
++    </key>
++  </component>
++  <component name="RunManager">
++    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
++      <module name="raman-spectra-grapher" />
++      <option name="ENV_FILES" value="" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <envs>
++        <env name="PYTHONUNBUFFERED" value="1" />
++      </envs>
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
++      <option name="IS_MODULE_SDK" value="true" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
++      <option name="PARAMETERS" value="" />
++      <option name="SHOW_COMMAND_LINE" value="false" />
++      <option name="EMULATE_TERMINAL" value="false" />
++      <option name="MODULE_MODE" value="false" />
++      <option name="REDIRECT_INPUT" value="false" />
++      <option name="INPUT_FILE" value="" />
++      <method v="2" />
++    </configuration>
++    <recent_temporary>
++      <list>
++        <item itemvalue="Python.main" />
++      </list>
++    </recent_temporary>
++  </component>
+   <component name="SharedIndexes">
+     <attachedChunks>
+       <set>
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.12\" project-jdk-type=\"Python SDK\" />\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/.idea/misc.xml	(date 1724162303604)
+@@ -1,4 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12" project-jdk-type="Python SDK" />
++  <component name="Black">
++    <option name="sdkName" value="Python 3.12" />
++  </component>
++  <component name="ProjectRootManager" version="2" project-jdk-name="C:\ProgramData\anaconda3" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"VcsDirectoryMappings\">\r\n    <mapping directory=\"\" vcs=\"Git\" />\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+--- a/.idea/vcs.xml	(revision fe1197f3e253ca4c76c6c5add1676e3d784ffd03)
++++ b/.idea/vcs.xml	(date 1723256813499)
+@@ -2,5 +2,7 @@
+ <project version="4">
+   <component name="VcsDirectoryMappings">
+     <mapping directory="" vcs="Git" />
++    <mapping directory="$PROJECT_DIR$/../electrochem-analysis-tool" vcs="Git" />
++    <mapping directory="$PROJECT_DIR$/../ftir-grapher" vcs="Git" />
+   </component>
+ </project>
+\ No newline at end of file
+Index: READ ME
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/READ ME b/READ ME
+new file mode 100644
+--- /dev/null	(date 1730502317340)
++++ b/READ ME	(date 1730502317340)
+@@ -0,0 +1,22 @@
++# Raman Spectra Grapher and Analysis
++
++## Overview
++The **Raman Spectra Grapher and Analysis** application is designed to assist researchers and scientists in visualizing and analyzing Raman spectroscopy data. This application allows users to plot spectra from CSV and Excel files, identify chemical compounds based on spectral peaks, and provides an intuitive graphical user interface built with Tkinter.
++
++## Features
++- Plot Raman spectra from multiple CSV or Excel files.
++- Identify major peaks in the spectra.
++- User-friendly interface with options to select a folder or a single file.
++- Adjustable settings for plotting and analysis.
++- Comprehensive error handling and validation of input files.
++
++## Installation
++
++### Prerequisites
++Make sure you have Python 3.x installed on your machine. You can download it from [python.org](https://www.python.org/downloads/).
++
++### Dependencies
++Install the required libraries using `pip`. You can run the following command in your terminal:
++
++```bash
++pip install matplotlib pandas openpyxl

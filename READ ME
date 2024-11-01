@@ -1,0 +1,22 @@
+# Raman Spectra Grapher and Analysis
+
+## Overview
+The **Raman Spectra Grapher and Analysis** application is designed to assist researchers and scientists in visualizing and analyzing Raman spectroscopy data. This application allows users to plot spectra from CSV and Excel files, identify chemical compounds based on spectral peaks, and provides an intuitive graphical user interface built with Tkinter.
+
+## Features
+- Plot Raman spectra from multiple CSV or Excel files.
+- Identify major peaks in the spectra.
+- User-friendly interface with options to select a folder or a single file.
+- Adjustable settings for plotting and analysis.
+- Comprehensive error handling and validation of input files.
+
+## Installation
+
+### Prerequisites
+Make sure you have Python 3.x installed on your machine. You can download it from [python.org](https://www.python.org/downloads/).
+
+### Dependencies
+Install the required libraries using `pip`. You can run the following command in your terminal:
+
+```bash
+pip install matplotlib pandas openpyxl

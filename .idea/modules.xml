@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" filepath="$PROJECT_DIR$/../electrochem-analysis-tool/.idea/elecmat-analysis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ftir-grapher/.idea/ftir-grapher.iml" filepath="$PROJECT_DIR$/../ftir-grapher/.idea/ftir-grapher.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/raman-spectra-grapher.iml" filepath="$PROJECT_DIR$/.idea/raman-spectra-grapher.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/raman-spectra-viz.iml" filepath="$PROJECT_DIR$/.idea/raman-spectra-viz.iml" />
     </modules>
   </component>
